@@ -6,3 +6,4 @@ name={name}
 main-class={canary.main.class}
 author=Visual Illusions Entertainment
 version={plugin.version}
+optional-dependencies=dConomy,Craftconomy3

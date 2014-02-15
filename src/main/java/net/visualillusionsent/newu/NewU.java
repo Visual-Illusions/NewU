@@ -17,7 +17,10 @@
  */
 package net.visualillusionsent.newu;
 
+import net.canarymod.Canary;
 import net.canarymod.commandsys.CommandDependencyException;
+import net.canarymod.logger.Logman;
+import net.visualillusionsent.dconomy.api.dConomyAddOn;
 import net.visualillusionsent.minecraft.plugin.canary.VisualIllusionsCanaryPlugin;
 
 import java.io.File;
@@ -27,10 +30,16 @@ import java.util.logging.Level;
 /**
  * @author Jason (darkdiplomat)
  */
-public final class NewU extends VisualIllusionsCanaryPlugin {
+public final class NewU extends VisualIllusionsCanaryPlugin implements dConomyAddOn {
+    static dConomyAddOn $;
     static StationTracker tracker;
     static NewUConfiguration cfg;
     static File cfgDir = new File("config/NewU/");
+    static boolean indafamily;
+
+    public NewU() {
+        $ = this;
+    }
 
     @Override
     public final boolean enable() {
@@ -38,17 +47,22 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
         try {
             if (!cfgDir.exists()) {
                 if (!cfgDir.mkdirs()) {
-                    getPluginLogger().log(Level.SEVERE, "NewU failed to create directories... Unable to continue...");
+                    getPluginLogger().log(Level.SEVERE, "Failed to create directories... Unable to continue...");
                     return false;
                 }
             }
             cfg = new NewUConfiguration(this);
+            if (cfg.isCharging() && Canary.loader().getPlugin("dConomy") == null && Canary.loader().getPlugin("Craftconomy3") == null) {
+                getPluginLogger().warning("Charging was enabled but no suitable economy plugin present is not present. Cannot continue...");
+                return false;
+            }
             tracker = new StationTracker();
             new RespawnStationListener(this);
+            indafamily = Canary.loader().getPlugin("dConomy") != null;
             return true;
         }
         catch (CommandDependencyException cdex) {
-            getPluginLogger().log(Level.SEVERE, "NewU failed to start...", cdex);
+            getPluginLogger().log(Level.SEVERE, "Failed to start...", cdex);
         }
         return false;
     }
@@ -61,5 +75,25 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
         catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void error(String msg) {
+        getLogman().error(msg);
+    }
+
+    @Override
+    public void message(String msg) {
+        getLogman().info(Logman.MESSAGE, msg);
+    }
+
+    @Override
+    public boolean hasPermission(String s) {
+        return true;
+    }
+
+    @Override
+    public String getUserLocale() {
+        return "en_US";
     }
 }

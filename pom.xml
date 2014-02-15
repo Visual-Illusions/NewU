@@ -73,12 +73,26 @@ Copyright © 2014 Visual Illusions Entertainment
             <name>Visual Illusions Repository</name>
             <url>http://repo2.visualillusionsent.net/</url>
         </repository>
+        <repository>
+            <id>greatman-code</id>
+            <url>http://repo.greatmancode.com/content/groups/public/</url>
+        </repository>
     </repositories>
     <dependencies>
         <dependency>
             <groupId>net.visualillusionsent</groupId>
             <artifactId>vimcplugin</artifactId>
             <version>${vimcplugin.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.visualillusionsent</groupId>
+            <artifactId>dconomy</artifactId>
+            <version>3.0.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.greatmancode</groupId>
+            <artifactId>craftconomy3</artifactId>
+            <version>3.1.6-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>

@@ -39,12 +39,12 @@ import java.util.HashMap;
  */
 public final class RespawnStationListener extends VisualIllusionsCanaryPluginInformationCommand implements PluginListener {
     private final String newU = TextFormat.LIGHT_GRAY + "[" + TextFormat.YELLOW + "NewU" + TextFormat.LIGHT_GRAY + "] " + TextFormat.CYAN + "%s";
-    private final HashMap<Player, String> pending;
+    private final HashMap<Player, String[]> pending;
     private final HashMap<Player, Vector3D> cache;
 
     public RespawnStationListener(NewU newu) throws CommandDependencyException {
         super(newu);
-        pending = new HashMap<Player, String>();
+        pending = new HashMap<Player, String[]>();
         cache = new HashMap<Player, Vector3D>();
         newu.registerListener(this);
         newu.registerCommands(this, false);
@@ -103,9 +103,22 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
     public final void respawn(PlayerRespawningHook hook) {
         Player player = hook.getPlayer();
         if (player.hasPermission("newu.use")) {
-            hook.setRespawnLocation(NewU.tracker.getClosestRespawn(player));
-            pending.put(player, NewU.tracker.getRandomMessage());
+            if (NewU.cfg.isCharging()) {
+                if (TransactionHandler.hasAmount(player)) {
+                    pending.put(player, new String[]{ NewU.tracker.getRandomMessage(), String.format("Fee: %.2f", TransactionHandler.percentage(player)) });
+                }
+                else if (NewU.cfg.isWaivable()) {
+                    pending.put(player, new String[]{ NewU.tracker.getRandomMessage(), "Fee: Waived" });
+                }
+                else {
+                    return; // Not Waivable and no money? Do not pass go, do not collect $200
+                }
+            }
+            else {
+                pending.put(player, new String[]{ NewU.tracker.getRandomMessage(), "Fee: None" });
+            }
             cache.remove(player);
+            hook.setRespawnLocation(NewU.tracker.getClosestRespawn(player));
         }
     }
 
@@ -113,7 +126,10 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
     public final void respawned(PlayerRespawnedHook hook) {
         Player player = hook.getPlayer();
         if (pending.containsKey(player)) {
-            player.message(String.format(newU, pending.remove(player)));
+            TransactionHandler.charge(player);
+            String[] msgs = pending.remove(player);
+            player.message(String.format(newU, msgs[0]));
+            player.message(String.format(newU, msgs[1]));
         }
     }
 
