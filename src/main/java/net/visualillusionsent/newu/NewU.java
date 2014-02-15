@@ -20,6 +20,7 @@ package net.visualillusionsent.newu;
 import net.canarymod.commandsys.CommandDependencyException;
 import net.visualillusionsent.minecraft.plugin.canary.VisualIllusionsCanaryPlugin;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.logging.Level;
 
@@ -27,12 +28,21 @@ import java.util.logging.Level;
  * @author Jason (darkdiplomat)
  */
 public final class NewU extends VisualIllusionsCanaryPlugin {
-    StationTracker tracker;
+    static StationTracker tracker;
+    static NewUConfiguration cfg;
+    static File cfgDir = new File("config/NewU/");
 
     @Override
-    public boolean enable() {
+    public final boolean enable() {
         super.enable();
         try {
+            if (!cfgDir.exists()) {
+                if (!cfgDir.mkdirs()) {
+                    getPluginLogger().log(Level.SEVERE, "NewU failed to create directories... Unable to continue...");
+                    return false;
+                }
+            }
+            cfg = new NewUConfiguration(this);
             tracker = new StationTracker();
             new RespawnStationListener(this);
             return true;
@@ -44,7 +54,7 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
     }
 
     @Override
-    public void disable() {
+    public final void disable() {
         try {
             tracker.storeStations();
         }

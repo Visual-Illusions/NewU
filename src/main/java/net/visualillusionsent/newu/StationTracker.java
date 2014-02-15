@@ -145,11 +145,8 @@ final class StationTracker {
     }
 
     final void storeStations() throws IOException {
-        File stationsDir = new File("config/NewU/");
-        if (!stationsDir.exists()) {
-            stationsDir.mkdirs();
-        }
-        File stationsJSON = new File(stationsDir, "stations.json");
+
+        File stationsJSON = new File(NewU.cfgDir, "stations.json");
         if (!stationsJSON.exists()) {
             stationsJSON.createNewFile();
         }
@@ -174,13 +171,10 @@ final class StationTracker {
 
     private void loadStations() {
         try {
-            File stationsDir = new File("config/NewU/");
-            if (!stationsDir.exists()) {
-                stationsDir.mkdirs();
-            }
-            File stationsJSON = new File(stationsDir, "stations.json");
+            File stationsJSON = new File(NewU.cfgDir, "stations.json");
             if (!stationsJSON.exists()) {
                 stationsJSON.createNewFile();
+                return;
             }
 
             JsonReader reader = new JsonReader(new FileReader(stationsJSON));

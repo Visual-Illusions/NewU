@@ -39,13 +39,11 @@ import java.util.HashMap;
  */
 public final class RespawnStationListener extends VisualIllusionsCanaryPluginInformationCommand implements PluginListener {
     private final String newU = TextFormat.LIGHT_GRAY + "[" + TextFormat.YELLOW + "NewU" + TextFormat.LIGHT_GRAY + "] " + TextFormat.CYAN + "%s";
-    private final StationTracker tracker;
     private final HashMap<Player, String> pending;
     private final HashMap<Player, Vector3D> cache;
 
     public RespawnStationListener(NewU newu) throws CommandDependencyException {
         super(newu);
-        tracker = newu.tracker;
         pending = new HashMap<Player, String>();
         cache = new HashMap<Player, Vector3D>();
         newu.registerListener(this);
@@ -71,7 +69,7 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
     )
     public final void setNewU(MessageReceiver receiver, String[] args) {
         if (receiver instanceof Player) {
-            if (tracker.addStation(new NewUStation(((Player) receiver).getLocation()))) {
+            if (NewU.tracker.addStation(new NewUStation(((Player) receiver).getLocation()))) {
                 receiver.message(String.format(newU, "Station Added!"));
             }
             else {
@@ -92,8 +90,8 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
     )
     public final void delNewU(MessageReceiver receiver, String[] args) {
         if (receiver instanceof Player) {
-            NewUStation station = tracker.getClosestStation((Player) receiver);
-            tracker.removeStation(station);
+            NewUStation station = NewU.tracker.getClosestStation((Player) receiver);
+            NewU.tracker.removeStation(station);
             receiver.message(String.format(newU, "Station @ " + station.coordinates() + " removed."));
         }
         else {
@@ -103,28 +101,31 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
 
     @HookHandler(priority = Priority.PASSIVE) // Cause, you know, being last makes us the only thing
     public final void respawn(PlayerRespawningHook hook) {
-        if (hook.getPlayer().hasPermission("newu.use")) {
-            hook.setRespawnLocation(tracker.getClosestRespawn(hook.getPlayer()));
-            pending.put(hook.getPlayer(), tracker.getRandomMessage());
-            cache.remove(hook.getPlayer());
+        Player player = hook.getPlayer();
+        if (player.hasPermission("newu.use")) {
+            hook.setRespawnLocation(NewU.tracker.getClosestRespawn(player));
+            pending.put(player, NewU.tracker.getRandomMessage());
+            cache.remove(player);
         }
     }
 
     @HookHandler(priority = Priority.PASSIVE)
     public final void respawned(PlayerRespawnedHook hook) {
-        if (pending.containsKey(hook.getPlayer())) {
-            hook.getPlayer().message(String.format(newU, pending.remove(hook.getPlayer())));
+        Player player = hook.getPlayer();
+        if (pending.containsKey(player)) {
+            player.message(String.format(newU, pending.remove(player)));
         }
     }
 
     @HookHandler(priority = Priority.PASSIVE)
     public final void nearStation(PlayerMoveHook hook) {
-        if (!cache.containsKey(hook.getPlayer()) || cache.get(hook.getPlayer()).getDistance(hook.getTo()) > 10) {
-            cache.put(hook.getPlayer(), hook.getTo());
-            NewUStation closest = tracker.getClosestStation(hook.getPlayer());
-            if (closest != null && !closest.hasDiscoveredNoAdd(hook.getPlayer())) {
-                closest.addDiscoverer(hook.getPlayer().getName());
-                hook.getPlayer().message(String.format(newU, "You have discovered a new NewU station."));
+        Player player = hook.getPlayer();
+        if (!cache.containsKey(player) || cache.get(player).getDistance(hook.getTo()) > 10) {
+            cache.put(player, hook.getTo());
+            NewUStation closest = NewU.tracker.getClosestStation(player);
+            if (closest != null && !closest.hasDiscoveredNoAdd(player)) {
+                closest.addDiscoverer(player.getName());
+                player.message(String.format(newU, "You have discovered a new NewU station."));
             }
         }
     }
@@ -132,5 +133,6 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
     @HookHandler(priority = Priority.PASSIVE)
     public final void disconnected(DisconnectionHook hook) {
         cache.remove(hook.getPlayer());
+        pending.remove(hook.getPlayer());
     }
 }
