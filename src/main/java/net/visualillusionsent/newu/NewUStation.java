@@ -109,16 +109,16 @@ final class NewUStation {
 
     final Location getRespawnLocation() {
         Location temp = station.clone();
-        double meh = Math.random();
+        double fudge = Math.random();
         int adj = 2;
-        if (meh > 0.3 && meh < 0.7) {
-            adj = ToolBox.floorToBlock(meh * 10.0D);
+        if (fudge > 0.3 && fudge < 0.7) {
+            adj = ToolBox.floorToBlock(fudge * 10.0D);
         }
         temp.setX(station.getBlockX() + adj + 0.5);
-        meh = Math.random();
+        fudge = Math.random();
         adj = 2;
-        if (meh > 0.3 && meh < 0.7) {
-            adj = ToolBox.floorToBlock(meh * 10.0D);
+        if (fudge > 0.3 && fudge < 0.75) {
+            adj = ToolBox.floorToBlock(fudge * 10.0D);
         }
         temp.setZ(station.getBlockZ() + adj + 0.5);
         return temp;

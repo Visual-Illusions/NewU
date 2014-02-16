@@ -25,6 +25,7 @@ import com.greatmancode.craftconomy3.currency.CurrencyManager;
 import net.canarymod.api.entity.living.humanoid.Player;
 import net.visualillusionsent.dconomy.accounting.AccountNotFoundException;
 import net.visualillusionsent.dconomy.accounting.AccountingException;
+import net.visualillusionsent.dconomy.api.InvalidPluginException;
 
 import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.testWalletDebit;
 import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.walletBalance;
@@ -72,13 +73,16 @@ final class TransactionHandler {
                 // dConomy
                 try {
                     testWalletDebit(player.getName(), debit);
-                    walletDebit(NewU.$, player.getName(), debit, false);
+                    walletDebit("NewU", player.getName(), debit, false);
                     return debit;
                 }
                 catch (AccountingException aex) {
                     // Ignored
                 }
                 catch (AccountNotFoundException anfex) {
+                    // Ignored
+                }
+                catch (InvalidPluginException e) {
                     // Ignored
                 }
             }
