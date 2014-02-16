@@ -22,7 +22,6 @@ import net.canarymod.commandsys.CommandDependencyException;
 import net.visualillusionsent.minecraft.plugin.canary.VisualIllusionsCanaryPlugin;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.logging.Level;
 
 /**
@@ -49,7 +48,7 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
                 getPluginLogger().warning("Charging was enabled but no suitable economy plugin present is not present. Cannot continue...");
                 return false;
             }
-            tracker = new StationTracker();
+            tracker = new StationTracker(this);
             new RespawnStationListener(this);
             indafamily = Canary.loader().getPlugin("dConomy") != null;
             return true;
@@ -62,11 +61,6 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
 
     @Override
     public final void disable() {
-        try {
-            tracker.storeStations();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+        tracker.storeStations();
     }
 }

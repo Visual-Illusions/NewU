@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.jar.JarFile;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 
 /**
@@ -41,14 +43,16 @@ final class StationTracker {
     private final Random randy = new Random();
     private final List<NewUStation> stations = Collections.synchronizedList(new ArrayList<NewUStation>());
     private final List<String> respawnMessages;
+    private final Logger logger;
 
-    StationTracker() {
+    StationTracker(NewU newU) {
+        logger = newU.getPluginLogger();
         loadStations();
         respawnMessages = Collections.unmodifiableList(loadMessages());
     }
 
     final boolean addStation(NewUStation station) {
-        // Check that we are beyond 10 blocks from another station
+        // Check that we are beyond 50 blocks from another station
         synchronized (stations) {
             for (NewUStation preExisting : stations) {
                 if (preExisting.getStationLocation().getDistance(station.getStationLocation()) < 50) {
@@ -57,23 +61,13 @@ final class StationTracker {
             }
         }
         stations.add(station);
-        try {
-            storeStations();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+        storeStations();
         return true;
     }
 
     final void removeStation(NewUStation station) {
         stations.remove(station);
-        try {
-            storeStations();
-        }
-        catch (IOException e) {
-            e.printStackTrace();
-        }
+        storeStations();
     }
 
     Location getClosestRespawn(Player player) {
@@ -134,7 +128,7 @@ final class StationTracker {
             }
         }
         catch (Exception ex) {
-            // TODO
+            logger.log(Level.SEVERE, "Failed to load reconstruction messages...");
         }
         finally {
             if (scanner != null) {
@@ -144,29 +138,41 @@ final class StationTracker {
         return temp;
     }
 
-    final void storeStations() throws IOException {
-
-        File stationsJSON = new File(NewU.cfgDir, "stations.json");
-        if (!stationsJSON.exists()) {
+    final boolean storeStations() {
+        boolean failure = false;
+        PrintWriter writer = null;
+        File stationsJSON = new File(NewU.cfgDir, "stations.json.tmp"); //Store to temp first
+        try {
             stationsJSON.createNewFile();
-        }
-        PrintWriter writer = new PrintWriter(stationsJSON);
-        writer.println("{");
-        boolean first = true;
-        for (NewUStation station : stations) {
-            if (first) {
-                first = false;
+            writer = new PrintWriter(stationsJSON);
+
+            writer.println("{");
+            boolean first = true;
+            for (NewUStation station : stations) {
+                if (first) {
+                    first = false;
+                }
+                else {
+                    writer.print(",");
+                    writer.println();
+                }
+                writer.print(station.toJSON());
             }
-            else {
-                writer.print(",");
-                writer.println();
-            }
-            writer.print(station.toJSON());
+            writer.println();
+            writer.println("}");
         }
-        writer.println();
-        writer.println("}");
-        writer.flush();
-        writer.close();
+        catch (IOException e) {
+            logger.log(Level.SEVERE, "Failed to store stations...");
+            failure = true;
+        }
+        finally {
+            if (writer != null)
+                writer.close();
+            if (!failure) {
+                failure = !stationsJSON.renameTo(new File(NewU.cfgDir, "stations.json"));
+            }
+        }
+        return !failure;
     }
 
     private void loadStations() {
