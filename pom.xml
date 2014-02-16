@@ -57,7 +57,7 @@ Copyright © 2014 Visual Illusions Entertainment
     <scm>
         <url>https://github.com/Visual-Illusions/NewU</url>
         <connection>GitHub</connection>
-        <developerConnection>scm:git:git@github.com:Visual-Illusions/CMCPCP.git</developerConnection>
+        <developerConnection>scm:git:git@github.com:Visual-Illusions/NewU.git</developerConnection>
     </scm>
     <issueManagement>
         <url>https://github.com/Visual-Illusions/NewU/issues/</url>
