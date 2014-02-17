@@ -32,7 +32,6 @@ import java.util.List;
  * @author Jason (darkdiplomat)
  */
 final class NewUStation {
-    private static final String jsonForm = "\"Station\":{\"Location\":{\"World\":\"%s\",\"Dimension\":\"%s\",\"X\":%.2f,\"Y\":%.2f,\"Z\":%.2f,\"RotX\":%.2f,\"RotY\":%.2f},\"Discoverers\":[%s]}";
     private final Location station;
     private final List<String> discoverers;
 
@@ -124,10 +123,6 @@ final class NewUStation {
         return temp;
     }
 
-    final String toJSON() {
-        return String.format(jsonForm, station.getWorldName(), station.getType().getName(), station.getX(), station.getY(), station.getZ(), station.getRotation(), station.getPitch(), discoverers());
-    }
-
     final String coordinates() {
         return String.format("X:%.2f;Y:%.2f;Z:%.2f", station.getX(), station.getY(), station.getZ());
     }
@@ -137,16 +132,7 @@ final class NewUStation {
         return super.toString(); //TODO
     }
 
-    private String discoverers() {
-        synchronized (discoverers) {
-            StringBuilder builder = new StringBuilder();
-            for (String discoverer : discoverers) {
-                builder.append("\"").append(discoverer).append("\",");
-            }
-            if (builder.length() > 1) {
-                builder.deleteCharAt(builder.length() - 1); // Remove last Comma if present
-            }
-            return builder.toString();
-        }
+    final String[] discoverers() {
+        return discoverers.toArray(new String[discoverers.size()]);
     }
 }

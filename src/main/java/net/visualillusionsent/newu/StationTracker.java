@@ -18,6 +18,7 @@
 package net.visualillusionsent.newu;
 
 import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 import net.canarymod.api.entity.living.humanoid.Player;
 import net.canarymod.api.world.position.Location;
 import net.visualillusionsent.utils.JarUtils;
@@ -140,38 +141,63 @@ final class StationTracker {
 
     final boolean storeStations() {
         boolean failure = false;
-        PrintWriter writer = null;
         File stationsJSON = new File(NewU.cfgDir, "stations.json.tmp"); //Store to temp first
+        JsonWriter writer = null;
+        PrintWriter pWriter = null;
         try {
             stationsJSON.createNewFile();
-            writer = new PrintWriter(stationsJSON);
-
-            writer.println("{");
-            boolean first = true;
+            pWriter = new PrintWriter(stationsJSON);
+            writer = new JsonWriter(pWriter);
+            writer.beginObject(); // Master Object
+            pWriter.println();
             for (NewUStation station : stations) {
-                if (first) {
-                    first = false;
+                pWriter.print("\t");
+                writer.name("Station");
+                writer.beginObject(); // Station object
+                writer.name("Location");
+                writer.beginObject(); // Location Object
+                writer.name("World");
+                Location loc = station.getStationLocation();
+                writer.value(loc.getWorldName());
+                writer.name("Dimension");
+                writer.value(loc.getType().getName());
+                writer.name("X");
+                writer.value(loc.getBlockX());
+                writer.name("Y");
+                writer.value(loc.getBlockY());
+                writer.name("Z");
+                writer.value(loc.getBlockZ());
+                writer.endObject(); // End Location
+                writer.name("Discoverers");
+                writer.beginArray(); // Discoverers Array
+                for (String discoverer : station.discoverers()) {
+                    writer.value(discoverer);
                 }
-                else {
-                    writer.print(",");
-                    writer.println();
-                }
-                writer.print(station.toJSON());
+                writer.endArray(); // End Discoverers
+                writer.endObject(); // End Station
+                pWriter.println();
             }
-            writer.println();
-            writer.println("}");
+            writer.endObject(); // End Master
         }
-        catch (IOException e) {
+        catch (Exception ex) {
             logger.log(Level.SEVERE, "Failed to store stations...");
             failure = true;
         }
         finally {
-            if (writer != null)
-                writer.close();
-            if (!failure) {
-                failure = !stationsJSON.renameTo(new File(NewU.cfgDir, "stations.json"));
+            try {
+                if (writer != null)
+                    writer.close();
             }
+            catch (IOException ioex) {
+                //IGNORED
+            }
+            if (pWriter != null)
+                pWriter.close();
         }
+        if (!failure) {
+            failure = !stationsJSON.renameTo(new File(NewU.cfgDir, "stations.json"));
+        }
+
         return !failure;
     }
 
@@ -204,7 +230,10 @@ final class StationTracker {
                                     temp.addDiscoverer(reader.nextString());
                                 }
                             }
-                            reader.endArray();
+                            reader.endArray(); // End Discoverers
+                        }
+                        else {
+                            reader.skipValue(); // UNKNOWN THING
                         }
                     }
                     if (temp != null) {
@@ -218,7 +247,7 @@ final class StationTracker {
             reader.close();
         }
         catch (IOException e) {
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Failed to load stations...");
         }
     }
 }
