@@ -31,7 +31,7 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
     static StationTracker tracker;
     static NewUConfiguration cfg;
     static File cfgDir = new File("config/NewU/");
-    static boolean indafamily;
+    static EconomyType ecoSystem;
 
     @Override
     public final boolean enable() {
@@ -50,7 +50,7 @@ public final class NewU extends VisualIllusionsCanaryPlugin {
             }
             tracker = new StationTracker(this);
             new RespawnStationListener(this);
-            indafamily = Canary.loader().getPlugin("dConomy") != null;
+            ecoSystem = Canary.loader().getPlugin("dConomy") != null ? EconomyType.DCONOMY : EconomyType.CRAFTCONOMY;
             return true;
         }
         catch (CommandDependencyException cdex) {

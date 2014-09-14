@@ -27,9 +27,7 @@ import net.visualillusionsent.dconomy.accounting.AccountNotFoundException;
 import net.visualillusionsent.dconomy.accounting.AccountingException;
 import net.visualillusionsent.dconomy.api.InvalidPluginException;
 
-import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.testWalletDebit;
-import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.walletBalance;
-import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.walletDebit;
+import static net.visualillusionsent.dconomy.api.account.wallet.WalletAPIListener.*;
 
 /**
  * @author Jason (darkdiplomat)
@@ -41,27 +39,25 @@ final class TransactionHandler {
     }
 
     static double percentage(Player player) {
-        if (NewU.indafamily) {
-            // dConomy
-            try {
-                return walletBalance(player.getName(), false) * NewU.cfg.chargePercent();
-            }
-            catch (AccountingException e) {
-                // Ignored
-            }
-            catch (AccountNotFoundException e) {
-                // Ignored
-            }
-        }
-        else {
-            // Craftconomy
-            AccountManager accountManager = Common.getInstance().getAccountManager();
-            CurrencyManager currencyManager = Common.getInstance().getCurrencyManager();
+        switch (NewU.ecoSystem) {
+            case DCONOMY:
+                try {
+                    return walletBalance(player.getUUID(), false) * NewU.cfg.chargePercent();
+                }
+                catch (AccountingException e) {
+                    // Ignored
+                }
+                catch (AccountNotFoundException e) {
+                    // Ignored
+                }
+            case CRAFTCONOMY:
+                AccountManager accountManager = Common.getInstance().getAccountManager();
+                CurrencyManager currencyManager = Common.getInstance().getCurrencyManager();
 
-            if (accountManager.exist(player.getName())) {
-                Account pAcc = accountManager.getAccount(player.getName());
-                return pAcc.getBalance(player.getWorld().getName(), currencyManager.getDefaultCurrency().getName()) * NewU.cfg.chargePercent();
-            }
+                if (accountManager.exist(player.getName())) {
+                    Account pAcc = accountManager.getAccount(player.getName());
+                    return pAcc.getBalance(player.getWorld().getName(), currencyManager.getDefaultCurrency().getName()) * NewU.cfg.chargePercent();
+                }
         }
         return 0;
     }
@@ -69,33 +65,32 @@ final class TransactionHandler {
     static double charge(Player player) {
         if (hasAmount(player)) {
             double debit = percentage(player);
-            if (NewU.indafamily) {
-                // dConomy
-                try {
-                    testWalletDebit(player.getName(), debit);
-                    walletDebit("NewU", player.getName(), debit, false);
-                    return debit;
-                }
-                catch (AccountingException aex) {
-                    // Ignored
-                }
-                catch (AccountNotFoundException anfex) {
-                    // Ignored
-                }
-                catch (InvalidPluginException e) {
-                    // Ignored
-                }
-            }
-            else {
-                //Craftconomy
-                AccountManager accountManager = Common.getInstance().getAccountManager();
-                CurrencyManager currencyManager = Common.getInstance().getCurrencyManager();
+            switch (NewU.ecoSystem) {
+                case DCONOMY:
+                    try {
+                        testWalletDebit(player.getUUID(), debit);
+                        walletDebit("NewU", player.getName(), debit, false);
+                        return debit;
+                    }
+                    catch (AccountingException aex) {
+                        // Ignored
+                    }
+                    catch (AccountNotFoundException anfex) {
+                        // Ignored
+                    }
+                    catch (InvalidPluginException e) {
+                        // Ignored
+                    }
+                    return 0;
+                case CRAFTCONOMY:
+                    AccountManager accountManager = Common.getInstance().getAccountManager();
+                    CurrencyManager currencyManager = Common.getInstance().getCurrencyManager();
 
-                if (accountManager.exist(player.getName())) {
-                    Account pAcc = accountManager.getAccount(player.getName());
-                    pAcc.withdraw(debit, player.getWorld().getFqName(), currencyManager.getDefaultCurrency().getName(), Cause.PLUGIN, "NewU Respawn Fee");
-                    return debit;
-                }
+                    if (accountManager.exist(player.getName())) {
+                        Account pAcc = accountManager.getAccount(player.getName());
+                        pAcc.withdraw(debit, player.getWorld().getFqName(), currencyManager.getDefaultCurrency().getName(), Cause.PLUGIN, "NewU Respawn Fee");
+                        return debit;
+                    }
             }
         }
         return 0;
