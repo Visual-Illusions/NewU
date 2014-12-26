@@ -1,18 +1,18 @@
 /*
  * This file is part of NewU.
  *
- * Copyright © 2014 Visual Illusions Entertainment
+ * Copyright © 2014-2014 Visual Illusions Entertainment
  *
  * NewU is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU General Public License v3 as published by
  * the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU General Public License v3 for more details.
  *
- * You should have received a copy of the GNU General Public License along with this program.
+ * You should have received a copy of the GNU General Public License v3 along with this program.
  * If not, see http://www.gnu.org/licenses/gpl.html.
  */
 package net.visualillusionsent.newu;
@@ -27,11 +27,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,7 +39,7 @@ import java.util.zip.ZipEntry;
  */
 final class StationTracker {
     private final Random randy = new Random();
-    private final List<NewUStation> stations = Collections.synchronizedList(new ArrayList<NewUStation>());
+    private final Map<String, NewUStation> stations = new ConcurrentHashMap<String, NewUStation>();
     private final List<String> respawnMessages;
     private final Logger logger;
 
@@ -55,20 +52,24 @@ final class StationTracker {
     final boolean addStation(NewUStation station) {
         // Check that we are beyond 50 blocks from another station
         synchronized (stations) {
-            for (NewUStation preExisting : stations) {
+            for (NewUStation preExisting : stations.values()) {
                 if (preExisting.getStationLocation().getDistance(station.getStationLocation()) < 50) {
+                    return false;
+                }
+                else if (preExisting.getName().equals(station.getName())) {
                     return false;
                 }
             }
         }
-        stations.add(station);
+        stations.put(station.getName(), station);
         storeStations();
         return true;
     }
 
-    final void removeStation(NewUStation station) {
-        stations.remove(station);
+    final boolean removeStation(String name) {
+        NewUStation station = stations.remove(name);
         storeStations();
+        return station != null;
     }
 
     Location getClosestRespawn(Player player) {
@@ -76,7 +77,7 @@ final class StationTracker {
         NewUStation going = null;
 
         synchronized (stations) {
-            for (NewUStation station : stations) {
+            for (NewUStation station : stations.values()) {
                 if (station.hasDiscovered(player)) {
                     double dist = station.distanceFrom(player);
                     if (distance == -1) {
@@ -90,7 +91,7 @@ final class StationTracker {
                 }
             }
         }
-        return going != null ? going.getRespawnLocation() : player.getWorld().getSpawnLocation();
+        return going != null ? going.getRespawnLocation() : null;
     }
 
     NewUStation getClosestStation(Player player) {
@@ -98,7 +99,7 @@ final class StationTracker {
         NewUStation closest = null;
 
         synchronized (stations) {
-            for (NewUStation station : stations) {
+            for (NewUStation station : stations.values()) {
                 double dist = station.distanceFrom(player);
                 if (distance == -1) {
                     distance = dist;
@@ -109,6 +110,9 @@ final class StationTracker {
                     closest = station;
                 }
             }
+        }
+        if (closest != null && closest.distanceFrom(player) > 25) {
+            return null;
         }
         return closest;
     }
@@ -150,10 +154,12 @@ final class StationTracker {
             writer = new JsonWriter(pWriter);
             writer.beginObject(); // Master Object
             pWriter.println();
-            for (NewUStation station : stations) {
+            for (NewUStation station : stations.values()) {
                 pWriter.print("\t");
                 writer.name("Station");
                 writer.beginObject(); // Station object
+                writer.name("Name");
+                writer.value(station.getName());
                 writer.name("Location");
                 writer.beginObject(); // Location Object
                 writer.name("World");
@@ -216,11 +222,16 @@ final class StationTracker {
                 if (name.equals("Station")) {
                     NewUStation temp = null;
                     reader.beginObject(); // Begin Station
+                    String foundName = null;
                     while (reader.hasNext()) {
                         name = reader.nextName();
-                        if (name.equals("Location")) {
+                        if (name.equals("Name")) {
+                            foundName = reader.nextString();
+                            continue;
+                        }
+                        else if (name.equals("Location")) {
                             reader.beginObject(); // Begin Location
-                            temp = new NewUStation(reader); // Pass reader into NewUStation object for parsing
+                            temp = new NewUStation(foundName, reader); // Pass reader into NewUStation object for parsing
                             reader.endObject(); // End Location
                         }
                         else if (name.equals("Discoverers")) {
@@ -237,7 +248,7 @@ final class StationTracker {
                         }
                     }
                     if (temp != null) {
-                        stations.add(temp);
+                        stations.put(temp.getName(), temp);
                     }
                     reader.endObject(); //End Station
                 }

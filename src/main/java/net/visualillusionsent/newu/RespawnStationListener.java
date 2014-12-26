@@ -1,26 +1,28 @@
 /*
  * This file is part of NewU.
  *
- * Copyright © 2014 Visual Illusions Entertainment
+ * Copyright © 2014-2014 Visual Illusions Entertainment
  *
  * NewU is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU General Public License v3 as published by
  * the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU General Public License v3 for more details.
  *
- * You should have received a copy of the GNU General Public License along with this program.
+ * You should have received a copy of the GNU General Public License v3 along with this program.
  * If not, see http://www.gnu.org/licenses/gpl.html.
  */
 package net.visualillusionsent.newu;
 
+import net.canarymod.Canary;
+import net.canarymod.api.chat.ChatComponent;
 import net.canarymod.api.entity.living.humanoid.Player;
+import net.canarymod.api.world.position.Location;
 import net.canarymod.api.world.position.Vector3D;
 import net.canarymod.chat.MessageReceiver;
-import net.canarymod.chat.TextFormat;
 import net.canarymod.commandsys.Command;
 import net.canarymod.commandsys.CommandDependencyException;
 import net.canarymod.hook.HookHandler;
@@ -30,6 +32,7 @@ import net.canarymod.hook.player.PlayerRespawnedHook;
 import net.canarymod.hook.player.PlayerRespawningHook;
 import net.canarymod.plugin.PluginListener;
 import net.canarymod.plugin.Priority;
+import net.visualillusionsent.minecraft.plugin.ChatFormat;
 import net.visualillusionsent.minecraft.plugin.canary.VisualIllusionsCanaryPluginInformationCommand;
 
 import java.util.HashMap;
@@ -38,7 +41,7 @@ import java.util.HashMap;
  * @author Jason (darkdiplomat)
  */
 public final class RespawnStationListener extends VisualIllusionsCanaryPluginInformationCommand implements PluginListener {
-    private final String newU = TextFormat.LIGHT_GRAY + "[" + TextFormat.YELLOW + "NewU" + TextFormat.LIGHT_GRAY + "] " + TextFormat.CYAN + "%s";
+    private final String newU = ChatFormat.LIGHT_GRAY + "[" + ChatFormat.YELLOW + "NewU" + ChatFormat.LIGHT_GRAY + "] " + ChatFormat.CYAN + "%s";
     private final HashMap<Player, String[]> pending;
     private final HashMap<Player, Vector3D> cache;
 
@@ -54,7 +57,8 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
             aliases = { "newu" },
             description = "NewU Information",
             permissions = { "" },
-            toolTip = "/newu [set|del]"
+            toolTip = "/newu [set <name>|del]",
+            version = 2
     )
     public final void newu(MessageReceiver receiver, String[] args) {
         this.sendInformation(receiver);
@@ -64,12 +68,14 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
             aliases = { "set" },
             description = "Sets a new Station at current location",
             permissions = { "newu.set" },
-            toolTip = "/newu set",
-            parent = "newu"
+            toolTip = "/newu set <name>",
+            helpLookup = "newu set",
+            parent = "newu",
+            min = 1
     )
     public final void setNewU(MessageReceiver receiver, String[] args) {
         if (receiver instanceof Player) {
-            if (NewU.tracker.addStation(new NewUStation(((Player) receiver).getLocation()))) {
+            if (NewU.tracker.addStation(new NewUStation(args[0], ((Player) receiver).getLocation()))) {
                 receiver.message(String.format(newU, "Station Added!"));
             }
             else {
@@ -83,19 +89,18 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
 
     @Command(
             aliases = { "del" },
-            description = "Deletes the closest NewU station",
+            description = "Deletes a NewU station",
             permissions = { "newu.del" },
-            toolTip = "/newu del",
-            parent = "newu"
+            toolTip = "/newu del <name>",
+            parent = "newu",
+            min = 1
     )
     public final void delNewU(MessageReceiver receiver, String[] args) {
-        if (receiver instanceof Player) {
-            NewUStation station = NewU.tracker.getClosestStation((Player) receiver);
-            NewU.tracker.removeStation(station);
-            receiver.message(String.format(newU, "Station @ " + station.coordinates() + " removed."));
+        if (NewU.tracker.removeStation(args[0])) {
+            receiver.message(String.format(newU, "Station " + args[0] + " removed."));
         }
         else {
-            receiver.notice("Player required to delete a nearby station");
+            receiver.notice("Station not found...");
         }
     }
 
@@ -118,7 +123,10 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
                 pending.put(player, new String[]{ NewU.tracker.getRandomMessage(), "Fee: None" });
             }
             cache.remove(player);
-            hook.setRespawnLocation(NewU.tracker.getClosestRespawn(player));
+            Location respawn = NewU.tracker.getClosestRespawn(player);
+            if (respawn != null) {
+                hook.setRespawnLocation(respawn);
+            }
         }
     }
 
@@ -141,7 +149,12 @@ public final class RespawnStationListener extends VisualIllusionsCanaryPluginInf
             NewUStation closest = NewU.tracker.getClosestStation(player);
             if (closest != null && !closest.hasDiscoveredNoAdd(player)) {
                 closest.addDiscoverer(player.getName());
-                player.message(String.format(newU, "You have discovered a new NewU station."));
+                ChatComponent title = Canary.factory().getChatComponentFactory().newChatComponent(closest.getName() + " Discovered");
+                ChatComponent subtitle = Canary.factory().getChatComponentFactory().newChatComponent("A NewU Station");
+                title.getChatStyle().setColor(Canary.factory().getChatComponentFactory().colorAqua());
+                subtitle.getChatStyle().setColor(Canary.factory().getChatComponentFactory().colorYellow());
+                player.showTitle(title, subtitle);
+                player.message(String.format(newU, "You have discovered NewU Station: '" + closest.getName() + "'."));
             }
         }
     }

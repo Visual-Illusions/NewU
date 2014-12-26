@@ -1,9 +1,9 @@
 ;# NewU - Canary Plugin Configuration File
-;# Copyright © {copyright.years} Visual Illusions Entertainment
-;# Licensed under the GNU General Public License 3
+;# Copyright © ${copyright.years} Visual Illusions Entertainment
+;# Licensed under the ${license.type}
 
-name={name}
-main-class={canary.main.class}
+name=${project.name}
+main-class=${canary.main.class}
 author=Visual Illusions Entertainment
-version={plugin.version}
+version=${project.version}
 optional-dependencies=dConomy,Craftconomy3

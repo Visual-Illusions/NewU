@@ -1,18 +1,18 @@
 /*
  * This file is part of NewU.
  *
- * Copyright © 2014 Visual Illusions Entertainment
+ * Copyright © 2014-2014 Visual Illusions Entertainment
  *
  * NewU is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
+ * it under the terms of the GNU General Public License v3 as published by
  * the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
  * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * See the GNU General Public License for more details.
+ * See the GNU General Public License v3 for more details.
  *
- * You should have received a copy of the GNU General Public License along with this program.
+ * You should have received a copy of the GNU General Public License v3 along with this program.
  * If not, see http://www.gnu.org/licenses/gpl.html.
  */
 package net.visualillusionsent.newu;
@@ -27,15 +27,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author Jason (darkdiplomat)
  */
 final class NewUStation {
+    private final String name;
     private final Location station;
     private final List<String> discoverers;
 
-    NewUStation(Location station) {
+    NewUStation(String name, Location station) {
+        this.name = name;
         this.discoverers = Collections.synchronizedList(new ArrayList<String>());
         // Adjust for centering
         this.station = new Location(station.getBlockX() + 0.5, station.getBlockY() + 0.1, station.getBlockZ() + 0.5);
@@ -43,38 +46,47 @@ final class NewUStation {
         this.station.setType(station.getType());
     }
 
-    NewUStation(JsonReader reader) throws IOException {
+    NewUStation(String stationName, JsonReader reader) throws IOException {
+        String tempName = stationName == null ? UUID.randomUUID().toString() : stationName;
         this.discoverers = Collections.synchronizedList(new ArrayList<String>());
 
         this.station = new Location(0, 0, 0); // Initialize
         while (reader.hasNext()) {
-            String name = reader.nextName();
+            String object = reader.nextName();
 
-            if (name.equals("World")) {
+            if (object.equals("Name")) {
+                tempName = reader.nextString();
+            }
+            if (object.equals("World")) {
                 station.setWorldName(reader.nextString());
             }
-            else if (name.equals("Dimension")) {
+            else if (object.equals("Dimension")) {
                 station.setType(DimensionType.fromName(reader.nextString()));
             }
-            else if (name.equals("X")) {
+            else if (object.equals("X")) {
                 station.setX(reader.nextDouble());
             }
-            else if (name.equals("Y")) {
+            else if (object.equals("Y")) {
                 station.setY(reader.nextDouble());
             }
-            else if (name.equals("Z")) {
+            else if (object.equals("Z")) {
                 station.setZ(reader.nextDouble());
             }
-            else if (name.equals("RotX")) {
+            else if (object.equals("RotX")) {
                 station.setRotation((float) reader.nextDouble());
             }
-            else if (name.equals("RotY")) {
+            else if (object.equals("RotY")) {
                 station.setPitch((float) reader.nextDouble());
             }
             else {
                 reader.skipValue(); // Unknown
             }
         }
+        this.name = tempName;
+    }
+
+    final String getName() {
+        return name;
     }
 
     final void addDiscoverer(String name) {
@@ -107,7 +119,7 @@ final class NewUStation {
     }
 
     final Location getRespawnLocation() {
-        Location temp = station.clone();
+        Location temp = station.copy();
         double fudge = Math.random();
         int adj = 2;
         if (fudge > 0.3 && fudge < 0.7) {
